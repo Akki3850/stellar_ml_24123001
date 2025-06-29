@@ -9,7 +9,7 @@ from sklearn.compose import ColumnTransformer
 
 # Load the saved model (trained separately)
 model = joblib.load("star_model.pkl")
-full_pipline = joblib.load("full_pipleline.pkl")
+full_pipline = joblib.load("full_pipeline.pkl")
 
 # Streamlit app UI
 st.set_page_config(page_title="Star Type Classifier")
