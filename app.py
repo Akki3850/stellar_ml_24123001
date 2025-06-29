@@ -1,92 +1,78 @@
-import numpy as np
-import pandas as pd
+import numpy as np 
+import pandas as pd 
 import joblib
-import streamlit as st
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import StandardScaler, OneHotEncoder
-from sklearn.impute import SimpleImputer
-from sklearn.compose import ColumnTransformer
+import streamlit as st 
+
+#making background 
+st.markdown(
+    """
+    <style>
+    .stApp {
+        background-image: url("https://images.pexels.com/photos/1175136/pexels-photo-1175136.jpeg");
+        background-size: cover;
+        background-attachment: fixed;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
 
-# Load the saved model (trained separately)
+
+#Loading saved model and pipleine 
 model = joblib.load("star_model.pkl")
-imputer = SimpleImputer(strategy='median')
-stellar_num = stellar.drop(["Star_Color", "S.No.", "Spectral_Class"], axis=1)
-imputer.fit(stellar_num)
-X = imputer.transform(stellar_num)
-stellar_cat = stellar[["Star_Color", "Spectral_Class"]]
-cat_encoder = OneHotEncoder()
-stellar_cat_1hot = cat_encoder.fit_transform(stellar_cat)
-num_pipeline = Pipeline([
-    ('imputer', SimpleImputer(strategy='median')),
-    ('std_scaler',StandardScaler())
+pipeline = joblib.load("full_pipeline.pkl")
+
+#Title 
+st.title("Star type Classifier")
+
+st.write("Enter the stellar parameters below:")
+
+#input 
+temperature = st.number_input("Temperature (K)", min_value=1000.0, max_value=50000.0, value=5000.0,format="%.4f")
+luminosity = st.number_input("Luminosity (Lo)", min_value=0.0001, value=0.005,format="%.4f")
+radius = st.number_input("Radius (Ro)", min_value=0.001, value=1.0,format="%.4f")
+abs_magnitude = st.number_input("Absolute Magnitude", value=1.0,format="%.4f")
+star_color = st.selectbox("Star Color", [
+    "Blue", "Blue White", "Blue white", "Blue-white", "Blue-White",
+    "White", "White-Yellow", "Whitish", "white",
+    "Yellow", "Yellowish White", "yellow-white", "yellowish", "Pale yellow orange",
+    "Orange", "Orange-Red", 
+    "Red"
 ])
-num_attribs = list(stellar_num)
-cat_attribs=["Star_Color", "Spectral_Class"]
 
-full_pipeline = ColumnTransformer([
-    ('num',num_pipeline,num_attribs),#the num pipline or the trasformations are done on the numerical attributes 
-    ('cat',OneHotEncoder(),cat_attribs)#one hot encoder on the cat_attribute 
-])
+spectral_class = st.selectbox("Spectral Class", ['O', 'B', 'A', 'F', 'G', 'K', 'M','D'])
 
-
-
-
-
-# Streamlit app UI
-st.set_page_config(page_title="Star Type Classifier")
-st.title("Star Type Classifier")
-st.markdown("Enter stellar parameters to predict the star type:")
-
-# Star color dropdown (include all known + cleaned values)
-color_options = [
-    "Blue", "Blue White", "White", "Yellowish White", "Yellow",
-    "Orange", "Red", "Blue white", "Blue-white", "Blue-White", "Pale yellow orange",
-    "yellowish", "yellow-white", "Orange-Red", "White-Yellow", "white", "Whitish"
-]
-spectral_options = ['O', 'B', 'A', 'F', 'G', 'K', 'M']
-
-# Input fields
-temperature = st.number_input("Temperature (K)", min_value=1000.0, max_value=50000.0, format="%.4f")
-luminosity = st.number_input("Luminosity (Lo)", min_value=0.0001, format="%.4f")
-radius = st.number_input("Radius (Ro)", min_value=0.001, format="%.4f")
-abs_magnitude = st.number_input("Absolute Magnitude", format="%.4f")
-star_color = st.selectbox("Star Color", sorted(color_options))
-spectral_class = st.selectbox("Spectral Class", spectral_options)
-
-# Color label cleanup
-color_mapping = {
-    "Blue white": "Blue White",
-    "Blue-white": "Blue White",
-    "Blue-White": "Blue White",
-    "Pale yellow orange": "Yellowish White",
-    "yellowish": "Yellowish White",
-    "yellow-white": "Yellowish White",
-    "Orange-Red": "Orange",
-    "White-Yellow": "White",
-    "white": "White",
-    "Whitish": "White"
-}
-star_color = color_mapping.get(star_color, star_color)
-
-# Predict button
 if st.button("Predict Star Type"):
-    input_data = pd.DataFrame([{
+      # Fix inconsistent labels
+    color_mapping = {
+        "Blue white": "Blue White",
+        "Blue-white": "Blue White",
+        "Blue-White": "Blue White",
+        "Pale yellow orange": "Yellowish White",
+        "yellowish": "Yellowish White",
+        "yellow-white": "Yellowish White",
+        "Orange-Red": "Orange",
+        "White-Yellow": "White",
+        "white": "White",
+        "Whitish": "White"
+    }
+    star_color = color_mapping.get(star_color, star_color)
+
+    # Create a DataFrame for prediction
+    data = pd.DataFrame([{
         "Temperature_K": temperature,
         "Luminosity_Lo": luminosity,
         "Radius_Ro": radius,
         "Absolute_Magnitude": abs_magnitude,
         "Star_Color": star_color,
         "Spectral_Class": spectral_class,
-        "S.No.": 0  # Dummy column (ignored in pipeline)
+        "S.No.": 0  # Dummy value
     }])
+        # Transform input
+    data_prepared = pipeline.transform(data)
+    prediction = model.predict(data_prepared)[0]
 
-    # Remove unused column
-    input_data = input_data.drop(columns=["S.No."])
-
-    try:
-        input_prepared = full_pipline.fit_transform(input_data)  # Only fit here if not saved
-        prediction = model.predict(input_prepared)[0]
-        st.success(f"🌟 Predicted Star Type: **{prediction}**")
-    except Exception as e:
-        st.error(f"Prediction failed: {e}")
+    st.success(f"Predicted Star Type: {prediction}")
+else: 
+    pass 
