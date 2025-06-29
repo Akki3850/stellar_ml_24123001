@@ -7,9 +7,31 @@ from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.impute import SimpleImputer
 from sklearn.compose import ColumnTransformer
 
+
 # Load the saved model (trained separately)
 model = joblib.load("star_model.pkl")
-full_pipline = joblib.load("full_pipeline.pkl")
+imputer = SimpleImputer(strategy='median')
+stellar_num = stellar.drop(["Star_Color", "S.No.", "Spectral_Class"], axis=1)
+imputer.fit(stellar_num)
+X = imputer.transform(stellar_num)
+stellar_cat = stellar[["Star_Color", "Spectral_Class"]]
+cat_encoder = OneHotEncoder()
+stellar_cat_1hot = cat_encoder.fit_transform(stellar_cat)
+num_pipeline = Pipeline([
+    ('imputer', SimpleImputer(strategy='median')),
+    ('std_scaler',StandardScaler())
+])
+num_attribs = list(stellar_num)
+cat_attribs=["Star_Color", "Spectral_Class"]
+
+full_pipeline = ColumnTransformer([
+    ('num',num_pipeline,num_attribs),#the num pipline or the trasformations are done on the numerical attributes 
+    ('cat',OneHotEncoder(),cat_attribs)#one hot encoder on the cat_attribute 
+])
+
+
+
+
 
 # Streamlit app UI
 st.set_page_config(page_title="Star Type Classifier")
